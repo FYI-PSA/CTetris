@@ -5,9 +5,10 @@
 
 #define ROWS 40
 #define COLOUMNS 10
-#define MAXBLOCKS 106
-#define EMPTYCELL '~'
-#define FULLCELL '#'
+#define MAXBLOCKS ((ROWS + 2) * (COLOUMNS + 2))
+#define SECONDWAIT 1
+#define EMPTYCELL '.'
+#define FULLCELL 'O'
 
 #ifndef __unix__
 #include <windows.h>
@@ -41,11 +42,11 @@ typedef struct vec2
 typedef struct block
 {
     vec2 squares[4];
+    bool is_static;
 } block;
 
 
 block all_blocks[MAXBLOCKS] = {};
-flag all_blocks_is_static[MAXBLOCKS] = {false * MAXBLOCKS};
 int blocks_count = 0;
 
 block* add_block(block new_block)
@@ -55,64 +56,72 @@ block* add_block(block new_block)
     return &all_blocks[(blocks_count-1)];
 }
 
+bool checkCollision(block check_block, int check_block_index)
+{
+    flag will_collide = false;
+    for (int other_blocks_index = 0; other_blocks_index < blocks_count; other_blocks_index++)
+    {
+        if (other_blocks_index == check_block_index)
+        {
+            continue;
+        }
+        block second_block = all_blocks[other_blocks_index];
+        if (second_block.is_static == false)
+        {
+            continue;
+        }
+        
+        for (int chk_blk_sqr_indx = 0; chk_blk_sqr_indx < 4; chk_blk_sqr_indx++)
+        {
+            int main_y = check_block.squares[chk_blk_sqr_indx].y;
+            int main_x = check_block.squares[chk_blk_sqr_indx].x;
+
+            for (int scnd_blk_sqr_indx = 0; scnd_blk_sqr_indx < 4; scnd_blk_sqr_indx++)
+            {
+                int secondary_y = second_block.squares[scnd_blk_sqr_indx].y;
+                int secondary_x = second_block.squares[scnd_blk_sqr_indx].x;
+
+                int collission_y = main_y + 1;
+                int collission_x = main_x + 0;
+                if (collission_y == secondary_y)
+                {
+                    if (collission_x == secondary_x)
+                    {
+                        will_collide = true;
+                    }
+                }
+
+            }
+        }
+
+    }
+    return will_collide;
+}
+
 const vec2 gravity_force = {0, 1};
 
 void gravity(void)
 {
     for (int block_index = 0; block_index < blocks_count; block_index += 1)
     {
-        flag wont_collide = true;
-        if (all_blocks_is_static[block_index])
+        block current_block = all_blocks[block_index];
+        if (current_block.is_static == true)
         {
             continue;
         }
-        block main_compare_block = all_blocks[block_index];
-        for (int compare_block_index = 0; compare_block_index < blocks_count; compare_block_index += 1)
+        bool will_collide = checkCollision(current_block, block_index);
+        if (will_collide == true)
         {
-            if (block_index == compare_block_index)
-            {
-                continue;
-            }
-            if (!all_blocks_is_static[compare_block_index])
-            {
-                continue;
-            }
-            block comparison_block = all_blocks[block_index];
-            for (int square_i = 0; square_i < 4; square_i += 1)
-            {
-                vec2 new_cord = main_compare_block.squares[square_i];
-                new_cord.y += 1;
-                for (int square_j = 0; square_j < 4; square_j += 1)
-                {
-                    vec2 comp_cord = main_compare_block.squares[square_j];
-                    if ((new_cord.x == comp_cord.x) && (new_cord.y == comp_cord.y))
-                    {
-                        wont_collide = false;
-                        break;
-                    }
-                }
-                if (!wont_collide)
-                {
-                    break;
-                }
-            }
-            if (!wont_collide)
-            {
-                break;
-            }
+            all_blocks[block_index].is_static = true;
+            //printf("a block is now static\n");
         }
-        if (wont_collide)
+        else
         {
             for(int square_i = 0; square_i < 4; square_i += 1)
             {
                 all_blocks[block_index].squares[square_i].x += gravity_force.x;
                 all_blocks[block_index].squares[square_i].y += gravity_force.y;
             }
-        }
-        else
-        {
-            all_blocks_is_static[block_index] = true;
-            printf("a block is now static\n");
         }
     }
 }
@@ -136,7 +145,7 @@ void draw(void)
                 {
                     vec2 checking_pos = current_checking_block.squares[checking_square_index];
 
-                    if((checking_pos.x == coloumn_i) && (checking_pos.y == row_i))
+                    if ((checking_pos.x == coloumn_i) && (checking_pos.y == row_i))
                     {
                         is_full = true;
                         break;
@@ -147,7 +156,7 @@ void draw(void)
                     break;
                 }
             }
-            if(is_full)
+            if (is_full)
             {
                 current_cell = FULLCELL;
             }
@@ -160,58 +169,66 @@ void draw(void)
     printf("%s\n", board);
 }
 
-
 void gameLoop(void)
 {
     int game_cycle = 200;
 
     block floor_block_1, floor_block_2, floor_block_3;
     
-    floor_block_1.squares[0].x = 5; floor_block_1.squares[0].y = 20;
-    floor_block_1.squares[1].x = 6; floor_block_1.squares[1].y = 20;
-    floor_block_1.squares[2].x = 7; floor_block_1.squares[2].y = 20;
-    floor_block_1.squares[3].x = 8; floor_block_1.squares[3].y = 20;
-    /*
-    floor_block_1.squares[0].x = 4; floor_block_1.squares[0].y = 40;
-    floor_block_1.squares[1].x = 5; floor_block_1.squares[1].y = 40;
-    floor_block_1.squares[2].x = 6; floor_block_1.squares[2].y = 40;
-    floor_block_1.squares[3].x = 7; floor_block_1.squares[3].y = 40;
+    floor_block_1.squares[0].x = 0; floor_block_1.squares[0].y = ROWS;
+    floor_block_1.squares[1].x = 1; floor_block_1.squares[1].y = ROWS;
+    floor_block_1.squares[2].x = 2; floor_block_1.squares[2].y = ROWS;
+    floor_block_1.squares[3].x = 3; floor_block_1.squares[3].y = ROWS;
     
-    floor_block_1.squares[0].x = 8; floor_block_1.squares[0].y = 40;
-    floor_block_1.squares[1].x = 9; floor_block_1.squares[1].y = 40;
-    floor_block_1.squares[2].x = 10; floor_block_1.squares[2].y = 40;
-    floor_block_1.squares[3].x = 11; floor_block_1.squares[3].y = 40;
-    */
-    block* last_block = add_block(floor_block_1);
-    all_blocks_is_static[0] = true;
-    // add_block(floor_block_2);
-    // all_blocks_is_static[1] = true;
-    // add_block(floor_block_3);
-    // all_blocks_is_static[2] = true;
-    int frequency = 10;
+    floor_block_2.squares[0].x = 4; floor_block_2.squares[0].y = ROWS;
+    floor_block_2.squares[1].x = 5; floor_block_2.squares[1].y = ROWS;
+    floor_block_2.squares[2].x = 6; floor_block_2.squares[2].y = ROWS;
+    floor_block_2.squares[3].x = 7; floor_block_2.squares[3].y = ROWS;
+    
+    floor_block_3.squares[0].x = 8; floor_block_3.squares[0].y = ROWS;
+    floor_block_3.squares[1].x = 9; floor_block_3.squares[1].y = ROWS;
+    floor_block_3.squares[2].x = 10; floor_block_3.squares[2].y = ROWS;
+    floor_block_3.squares[3].x = 11; floor_block_3.squares[3].y = ROWS;
+
+    floor_block_1.is_static = true;
+    floor_block_2.is_static = true;
+    floor_block_3.is_static = true;
+
+    block* last_block;
+    last_block = add_block(floor_block_1);
+    last_block = add_block(floor_block_2);
+    last_block = add_block(floor_block_3);
+
+    int frequency = 6;
     do
     {
         draw();
         gravity();
         game_cycle -= 1;
-        printf("FLOOR Y LEVEL : %i\n", all_blocks[0].squares[0].y);
-        printf("BLOCKS : %i\n", blocks_count);
-        printf("CYCLE : %i\n", game_cycle);
-        printf("SPAWN : %i\n", (game_cycle%frequency));
-        printf("LAST BLOCK Y LEVEL : %i\n", (*last_block).squares[0].y);
-        if (((game_cycle+12) % frequency) == 0)
+        block last_block_copy = (*last_block);
+        // printf("CYCLE : %i\n", game_cycle);
+        // if (((game_cycle+12) % frequency) == 0)
+        if (last_block_copy.is_static == true)
         {
-            block new_block;
-            new_block.squares[0].x = 0; new_block.squares[0].y = 1;
-            new_block.squares[1].x = 1; new_block.squares[1].y = 1;
-            new_block.squares[2].x = 1; new_block.squares[2].y = 0;
-            new_block.squares[3].x = 2; new_block.squares[3].y = 0;
-            last_block = add_block(new_block);
+            if (blocks_count < (MAXBLOCKS-5))
+            {
+                block new_block;
+                new_block.squares[0].x = 0; new_block.squares[0].y = 1;
+                new_block.squares[1].x = 1; new_block.squares[1].y = 1;
+                new_block.squares[2].x = 1; new_block.squares[2].y = 0;
+                new_block.squares[3].x = 2; new_block.squares[3].y = 0;
+                new_block.is_static = false;
+                last_block = add_block(new_block);
+            }
+            else
+            {
+                printf("NO MORE BLOCKS, MAX REACHED\n");
+            }
         }
-        sleepSeconds(1);
+        sleepSeconds(SECONDWAIT);
         clearBoard();
     }
-    while (game_cycle > 0);
+    while (game_cycle != 69420);
     clearBoard();
     draw();
 }
