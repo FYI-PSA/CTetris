@@ -7,23 +7,47 @@
 #define COLOUMNS 10
 #define MAXBLOCKS ((ROWS + 2) * (COLOUMNS + 2))
 #define SECONDWAIT 1
+#define MSWAIT 333
 #define EMPTYCELL '.'
 #define FULLCELL 'O'
 
+int PLAYGAME = 1;
+
 #ifndef __unix__
+/*  IF ON WINDOWS :  */
+/*--------------------------------------*/
 #include <windows.h>
-void clearBoard()
+#include <conio.h>
+void clearBoard(void)
 {
     system("cls");
 }
 void sleepSeconds(int seconds)
 {
-    int milliseconds = seconds*1000;
+    long milliseconds = seconds*1000;
     Sleep(milliseconds);
 }
+void sleepMilliseconds(long milliseconds)
+{
+    Sleep(milliseconds);
+}
+char getch_noblock(void)
+{
+    char pickedup = EOF;
+    if (_kbhit())
+    {
+        pickedup = _getch();
+    }
+    return pickedup;
+}
+/*--------------------------------------*/
 #else
+/*  IF ON LINUX :  */
+/*--------------------------------------*/
+#include <termios.h>
 #include <unistd.h>
-void clearBoard()
+#include <time.h>
+void clearBoard(void)
 {
     system("clear");
 }
@@ -31,7 +55,74 @@ void sleepSeconds(int seconds)
 {
     sleep(seconds);
 }
+void sleepMilliseconds(long milliseconds)
+{
+    long seconds = 0;
+    long millisecs = 0;
+    if (milliseconds >= 1000)
+    {
+        seconds = (long)((milliseconds / 1000));
+        millisecs = (long)((milliseconds % 1000));
+    }
+    else
+    {
+        seconds = 0;
+        millisecs = milliseconds;
+    }
+    long nanoseconds = 1000000 * milliseconds;
+
+    struct timespec sleepytime;
+    sleepytime.tv_sec = seconds;
+    sleepytime.tv_nsec = nanoseconds;
+
+    nanosleep(&sleepytime, NULL);
+}
+char getch_noblock(void)
+{
+    struct termios terminal_current = {};
+    int readstatus;
+    int readbuffer;
+
+    if (tcgetattr(STDIN_FILENO, &terminal_current) < 0)
+    {
+        perror("tcgetattr()");
+    }
+
+    terminal_current.c_lflag = ((terminal_current.c_lflag) & (~(ICANON | ECHO)));
+    terminal_current.c_cc[VMIN] = 0;
+    terminal_current.c_cc[VTIME] = 0;
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &terminal_current) < 0)
+    {
+        perror("tcsetattr()");
+    }
+
+    readstatus = read(STDIN_FILENO, &readbuffer, 1);
+    if (readstatus < 0)
+    {
+        perror("read()");
+    }
+
+    terminal_current.c_lflag = ((terminal_current.c_lflag) | ((ICANON | ECHO)));
+
+    if (tcsetattr(STDIN_FILENO, TCSADRAIN, &terminal_current) < 0)
+    {
+        perror("tcsetattr()");
+    }
+    
+    if (readstatus > 0)
+    {
+        return readbuffer;
+    }
+    else
+    {
+        return EOF;
+    }
+}
+/*--------------------------------------*/
 #endif
+
+
+
 
 
 typedef bool flag;
@@ -126,6 +217,45 @@ void gravity(void)
     }
 }
 
+void ProcessKeys(char keyboardpress)
+{
+    if (keyboardpress == 'Q' | keyboardpress == 'q' | keyboardpress == 27)
+    {
+        if (keyboardpress == 27)
+        {
+            char nextkey = getch_noblock();
+            if (nextkey != EOF)
+            {
+                return;
+            }
+        }
+        printf("END\n");
+        PLAYGAME = 0;
+    }
+    else if (keyboardpress == 'S' | keyboardpress == 's')
+    {
+        printf("DOWN\n");
+    }
+    else if (keyboardpress == 'A' | keyboardpress == 'a')
+    {
+        printf("LEFT\n");
+    }
+    else if (keyboardpress == 'D' | keyboardpress == 'd')
+    {
+        printf("RIGHT\n");
+    }
+    else if (keyboardpress == ' ' | keyboardpress == '\n' | keyboardpress == '\r')
+    {
+        printf("SMASH DOWN\n");
+    }
+    else
+    {
+        printf("NOT RECOGNIZED : %d\n", keyboardpress);
+    }
+}
+
+
+
 void draw(void)
 {
     int cells = ROWS * (COLOUMNS+1);
@@ -171,7 +301,7 @@ void draw(void)
 
 void gameLoop(void)
 {
-    int game_cycle = 200;
+    // int game_cycle = 200;
 
     block floor_block_1, floor_block_2, floor_block_3;
     
@@ -204,10 +334,8 @@ void gameLoop(void)
     {
         draw();
         gravity();
-        game_cycle -= 1;
+        // game_cycle -= 1;
         block last_block_copy = (*last_block);
-        // printf("CYCLE : %i\n", game_cycle);
-        // if (((game_cycle+12) % frequency) == 0)
         if (last_block_copy.is_static == true)
         {
             if (blocks_count < (MAXBLOCKS-5))
@@ -225,12 +353,20 @@ void gameLoop(void)
                 printf("NO MORE BLOCKS, MAX REACHED\n");
             }
         }
-        sleepSeconds(SECONDWAIT);
+        char keypress = EOF;
+        keypress = getch_noblock();
+        ProcessKeys(keypress);
+        sleepMilliseconds(MSWAIT);
         clearBoard();
     }
-    while (game_cycle != 69420);
+    while(PLAYGAME == 1);
     clearBoard();
     draw();
+}
+
+void endGame(void)
+{
+    PLAYGAME = 0;
 }
 
 int main(int argc, char** argv)
