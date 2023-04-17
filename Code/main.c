@@ -6,8 +6,10 @@
 #define ROWS 40
 #define COLOUMNS 10
 #define MAXBLOCKS ((ROWS + 2) * (COLOUMNS + 2))
-#define SECONDWAIT 1
-#define MSWAIT 333
+
+#define SECONDWAIT 0
+#define MSWAIT 50
+
 #define EMPTYCELL '.'
 #define FULLCELL 'O'
 
@@ -55,21 +57,21 @@ void sleepSeconds(int seconds)
 {
     sleep(seconds);
 }
-void sleepMilliseconds(long milliseconds)
+void sleepMilliseconds(unsigned long milliseconds)
 {
-    long seconds = 0;
-    long millisecs = 0;
+    unsigned long seconds = 0;
+    unsigned long millisecs = 0;
     if (milliseconds >= 1000)
     {
-        seconds = (long)((milliseconds / 1000));
-        millisecs = (long)((milliseconds % 1000));
+        seconds = (unsigned long)((milliseconds / 1000));
+        millisecs = (unsigned long)((milliseconds % 1000));
     }
     else
     {
         seconds = 0;
         millisecs = milliseconds;
     }
-    long nanoseconds = 1000000 * milliseconds;
+    unsigned long nanoseconds = 1000000 * milliseconds;
 
     struct timespec sleepytime;
     sleepytime.tv_sec = seconds;
@@ -133,8 +135,16 @@ typedef struct vec2
 typedef struct block
 {
     vec2 squares[4];
-    bool is_static;
+    flag is_static;
 } block;
+typedef struct moveset
+{
+    flag right;
+    flag left;
+    flag down;
+    flag rotate;
+    flag smash;
+} moveset;
 
 
 block all_blocks[MAXBLOCKS] = {};
@@ -147,7 +157,7 @@ block* add_block(block new_block)
     return &all_blocks[(blocks_count-1)];
 }
 
-bool checkCollision(block check_block, int check_block_index)
+bool checkCollision(block check_block, int check_block_index, vec2 collission_force)
 {
     flag will_collide = false;
     for (int other_blocks_index = 0; other_blocks_index < blocks_count; other_blocks_index++)
@@ -162,6 +172,9 @@ bool checkCollision(block check_block, int check_block_index)
             continue;
         }
         
+        int force_x = collission_force.x;
+        int force_y = collission_force.y;
+
         for (int chk_blk_sqr_indx = 0; chk_blk_sqr_indx < 4; chk_blk_sqr_indx++)
         {
             int main_y = check_block.squares[chk_blk_sqr_indx].y;
@@ -172,8 +185,8 @@ bool checkCollision(block check_block, int check_block_index)
                 int secondary_y = second_block.squares[scnd_blk_sqr_indx].y;
                 int secondary_x = second_block.squares[scnd_blk_sqr_indx].x;
 
-                int collission_y = main_y + 1;
-                int collission_x = main_x + 0;
+                int collission_y = main_y + force_y;
+                int collission_x = main_x + force_x;
                 if (collission_y == secondary_y)
                 {
                     if (collission_x == secondary_x)
@@ -190,8 +203,11 @@ bool checkCollision(block check_block, int check_block_index)
 }
 
 const vec2 gravity_force = {0, 1};
+const vec2 move_right = {1, 0};
+const vec2 move_left = {-1, 0};
+const vec2 move_down = {0, 1};
 
-void gravity(void)
+void apply_force(vec2 force)
 {
     for (int block_index = 0; block_index < blocks_count; block_index += 1)
     {
@@ -200,58 +216,126 @@ void gravity(void)
         {
             continue;
         }
-        bool will_collide = checkCollision(current_block, block_index);
+        bool will_collide = checkCollision(current_block, block_index, gravity_force);
         if (will_collide == true)
         {
-            all_blocks[block_index].is_static = true;
+            if (force.y > 0)
+            {
+                all_blocks[block_index].is_static = true;
+            }
             //printf("a block is now static\n");
         }
         else
         {
             for(int square_i = 0; square_i < 4; square_i += 1)
             {
-                all_blocks[block_index].squares[square_i].x += gravity_force.x;
-                all_blocks[block_index].squares[square_i].y += gravity_force.y;
+                all_blocks[block_index].squares[square_i].x += force.x;
+                all_blocks[block_index].squares[square_i].y += force.y;
             }
         }
     }
 }
 
-void ProcessKeys(char keyboardpress)
+void MoveBlocks(moveset moves, block* last_block)
 {
-    if (keyboardpress == 'Q' | keyboardpress == 'q' | keyboardpress == 27)
+    vec2 movement = {0, 0};
+    if (moves.right)
     {
-        if (keyboardpress == 27)
+        movement = move_right;
+    }
+    if (moves.left)
+    {
+        movement = move_left;
+    }
+    if (moves.down)
+    {
+        movement = move_down;
+    }
+
+    apply_force(movement);
+
+    if (moves.rotate)
+    {
+
+    }
+    if (moves.smash)
+    {
+        
+    }
+    return;
+}
+
+moveset ProcessKeys(char keyboardpress)
+{
+    char nextKey = getch_noblock();
+    if (keyboardpress == 27)
+    {
+        if (nextKey == EOF)
         {
-            char nextkey = getch_noblock();
-            if (nextkey != EOF)
-            {
-                return;
-            }
+            keyboardpress = 'Q';
         }
-        printf("END\n");
+        
+        if (nextKey == 91)
+        {
+            nextKey = getch_noblock();
+        }
+
+        if (nextKey == 65)
+        {
+            keyboardpress = 'W';
+        }
+        else if (nextKey == 66)
+        {
+            keyboardpress = 'S';
+        }
+        else if (nextKey == 67)
+        {
+            keyboardpress = 'D';
+        }
+        else if (nextKey == 68)
+        {
+            keyboardpress = 'A';
+        }
+    }
+
+    moveset moves = {false, false, false , false};
+
+    if (keyboardpress == 'Q' | keyboardpress == 'q')
+    {
+        printf("END : %d\n", keyboardpress);
         PLAYGAME = 0;
+    }
+    else if (keyboardpress == 'W' | keyboardpress == 'w')
+    {
+        // printf("ROTATE : %d\n", keyboardpress);
+        moves.rotate = true;
     }
     else if (keyboardpress == 'S' | keyboardpress == 's')
     {
-        printf("DOWN\n");
-    }
-    else if (keyboardpress == 'A' | keyboardpress == 'a')
-    {
-        printf("LEFT\n");
+        // printf("DOWN : %d\n", keyboardpress);
+        moves.down = true;
     }
     else if (keyboardpress == 'D' | keyboardpress == 'd')
     {
-        printf("RIGHT\n");
+        // printf("RIGHT : %d\n", keyboardpress);
+        moves.right = true;
+    }
+    else if (keyboardpress == 'A' | keyboardpress == 'a')
+    {
+        // printf("LEFT : %d\n", keyboardpress);
+        moves.left = true;
     }
     else if (keyboardpress == ' ' | keyboardpress == '\n' | keyboardpress == '\r')
     {
-        printf("SMASH DOWN\n");
+        // printf("SMASH DOWN : %d\n", keyboardpress);
+        moves.smash = true;
     }
     else
     {
-        printf("NOT RECOGNIZED : %d\n", keyboardpress);
+        // printf("NOT RECOGNIZED : %d\n", keyboardpress);
     }
+
+    return moves;
 }
 
 
@@ -301,8 +385,6 @@ void draw(void)
 
 void gameLoop(void)
 {
-    // int game_cycle = 200;
-
     block floor_block_1, floor_block_2, floor_block_3;
     
     floor_block_1.squares[0].x = 0; floor_block_1.squares[0].y = ROWS;
@@ -324,18 +406,29 @@ void gameLoop(void)
     floor_block_2.is_static = true;
     floor_block_3.is_static = true;
 
-    block* last_block;
-    last_block = add_block(floor_block_1);
-    last_block = add_block(floor_block_2);
-    last_block = add_block(floor_block_3);
+    block* last_block_pointer;
+    last_block_pointer = add_block(floor_block_1);
+    last_block_pointer = add_block(floor_block_2);
+    last_block_pointer = add_block(floor_block_3);
 
-    int frequency = 6;
+    int game_ticks = 12;
+    int tick_counter = game_ticks;
+    /*
+    TODO :
+     ticks per second counter to automatically set sleep timers
+     different types of blocks
+     block rotation
+     smashing down
+    */
     do
     {
-        draw();
-        gravity();
-        // game_cycle -= 1;
-        block last_block_copy = (*last_block);
+        tick_counter -= 1;
+        if (tick_counter <= 0)
+        {
+            apply_force(gravity_force);
+            tick_counter = game_ticks;
+        }
+        block last_block_copy = (*last_block_pointer);
         if (last_block_copy.is_static == true)
         {
             if (blocks_count < (MAXBLOCKS-5))
@@ -346,7 +439,7 @@ void gameLoop(void)
                 new_block.squares[2].x = 1; new_block.squares[2].y = 0;
                 new_block.squares[3].x = 2; new_block.squares[3].y = 0;
                 new_block.is_static = false;
-                last_block = add_block(new_block);
+                last_block_pointer = add_block(new_block);
             }
             else
             {
@@ -355,8 +448,14 @@ void gameLoop(void)
         }
         char keypress = EOF;
         keypress = getch_noblock();
-        ProcessKeys(keypress);
+        moveset to_move = ProcessKeys(keypress);
+        MoveBlocks(to_move, last_block_pointer);
+        
+        draw();
+
+        sleepSeconds(SECONDWAIT);
         sleepMilliseconds(MSWAIT);
+        
         clearBoard();
     }
     while(PLAYGAME == 1);
