@@ -3,12 +3,12 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define ROWS 40
+#define ROWS 30
 #define COLOUMNS 10
 #define MAXBLOCKS ((ROWS + 2) * (COLOUMNS + 2))
 
 #define SECONDWAIT 0
-#define MSWAIT 50
+#define MSWAIT 33
 
 #define EMPTYCELL '.'
 #define FULLCELL 'O'
@@ -136,6 +136,7 @@ typedef struct block
 {
     vec2 squares[4];
     flag is_static;
+    int rotation_state;
 } block;
 typedef struct moveset
 {
@@ -234,6 +235,11 @@ void apply_force(vec2 force)
             }
         }
     }
+}
+
+void RotateBlock(block* target_block)
+{
+    return;
 }
 
 void MoveBlocks(moveset moves, block* last_block)
@@ -411,7 +417,7 @@ void gameLoop(void)
     last_block_pointer = add_block(floor_block_2);
     last_block_pointer = add_block(floor_block_3);
 
-    int game_ticks = 12;
+    int game_ticks = 15;
     int tick_counter = game_ticks;
     /*
     TODO :
