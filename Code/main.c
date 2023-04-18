@@ -440,6 +440,7 @@ void gameLoop(void)
     int tick_counter = game_ticks;
     /*
     TODO :
+     reset function and R key
      ticks per second counter to automatically set sleep timers
      different types of blocks
      block rotation
