@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #define ROWS 30
-#define COLOUMNS 10
+#define COLOUMNS 20
 #define MAXBLOCKS ((ROWS + 2) * (COLOUMNS + 2))
 
 #define SECONDWAIT 0
@@ -137,6 +137,7 @@ typedef struct block
     vec2 squares[4];
     flag is_static;
     int rotation_state;
+    long block_index;
 } block;
 typedef struct moveset
 {
@@ -149,10 +150,11 @@ typedef struct moveset
 
 
 block all_blocks[MAXBLOCKS] = {};
-int blocks_count = 0;
+long blocks_count = 0;
 
 block* add_block(block new_block)
 {
+    new_block.block_index = blocks_count;
     all_blocks[blocks_count] = new_block;
     blocks_count = blocks_count + 1;
     return &all_blocks[(blocks_count-1)];
@@ -208,41 +210,58 @@ const vec2 move_right = {1, 0};
 const vec2 move_left = {-1, 0};
 const vec2 move_down = {0, 1};
 
-void apply_force(vec2 force)
+void apply_force(vec2 force, block* last_block)
 {
-    for (int block_index = 0; block_index < blocks_count; block_index += 1)
-    {
-        block current_block = all_blocks[block_index];
+    // for (int block_index = 0; block_index < blocks_count; block_index += 1)
+    // {
+        block current_block = *last_block;
         if (current_block.is_static == true)
         {
-            continue;
+            return;
         }
-        bool will_collide = checkCollision(current_block, block_index, gravity_force);
+        bool will_collide = checkCollision(current_block, current_block.block_index, gravity_force);
         if (will_collide == true)
         {
-            if (force.y > 0)
-            {
-                all_blocks[block_index].is_static = true;
-            }
-            //printf("a block is now static\n");
+            // if (force.y > 0)
+            // {
+                all_blocks[current_block.block_index].is_static = true;
+            // }
         }
         else
         {
             for(int square_i = 0; square_i < 4; square_i += 1)
             {
-                all_blocks[block_index].squares[square_i].x += force.x;
-                all_blocks[block_index].squares[square_i].y += force.y;
+                all_blocks[current_block.block_index].squares[square_i].x += force.x;
+                all_blocks[current_block.block_index].squares[square_i].y += force.y;
             }
         }
-    }
+    // }
 }
 
 void RotateBlock(block* target_block)
 {
+    block current_block = *target_block;
+    int current_rotation_state = current_block.rotation_state;
+    if (current_rotation_state == 0)
+    {
+        
+    }
+    else if (current_rotation_state == 1)
+    {
+
+    }
+    else if (current_rotation_state == 2)
+    {
+
+    }
+    else if (current_rotation_state == 3)
+    {
+
+    }
     return;
 }
 
-void MoveBlocks(moveset moves, block* last_block)
+void MoveBlocks(moveset moves, block* last_block_pointer)
 {
     vec2 movement = {0, 0};
     if (moves.right)
@@ -258,11 +277,11 @@ void MoveBlocks(moveset moves, block* last_block)
         movement = move_down;
     }
 
-    apply_force(movement);
+    apply_force(movement, last_block_pointer);
 
     if (moves.rotate)
     {
-
+        RotateBlock(last_block_pointer);
     }
     if (moves.smash)
     {
@@ -417,7 +436,7 @@ void gameLoop(void)
     last_block_pointer = add_block(floor_block_2);
     last_block_pointer = add_block(floor_block_3);
 
-    int game_ticks = 15;
+    int game_ticks = 30;
     int tick_counter = game_ticks;
     /*
     TODO :
@@ -425,13 +444,14 @@ void gameLoop(void)
      different types of blocks
      block rotation
      smashing down
+     fix sideways collission 
     */
     do
     {
         tick_counter -= 1;
         if (tick_counter <= 0)
         {
-            apply_force(gravity_force);
+            apply_force(gravity_force, last_block_pointer);
             tick_counter = game_ticks;
         }
         block last_block_copy = (*last_block_pointer);
