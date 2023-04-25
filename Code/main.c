@@ -242,9 +242,34 @@ void RotateBlock(block* target_block)
 {
     block current_block = *target_block;
     int current_rotation_state = current_block.rotation_state;
+    vec2 X1 = current_block.squares[1];
     if (current_rotation_state == 0)
     {
+        vec2 X2 = {X1.x + 1, X1.y};
         
+        vec2 sqr_1 = current_block.squares[0];
+        vec2 delta_1 = {   X1.x - sqr_1.x    ,  X2.y - sqr_1.y   };
+        vec2 new_sqr_1 = { X2.x - delta_1.y  ,  X2.y - delta_1.x };
+        
+        vec2 sqr_2 = current_block.squares[1];
+        vec2 delta_2 = {   X1.x - sqr_2.x    ,  X2.y - sqr_2.y   };
+        vec2 new_sqr_2 = { X2.x - delta_2.y  ,  X2.y - delta_2.x };
+        
+        vec2 sqr_3 = current_block.squares[2];
+        vec2 delta_3 = {   X1.x - sqr_3.x    ,  X2.y - sqr_3.y   };
+        vec2 new_sqr_3 = { X2.x - delta_3.y  ,  X2.y - delta_3.x };
+
+        vec2 sqr_4 = current_block.squares[3];
+        vec2 delta_4 = {   X1.x - sqr_4.x    ,  X2.y - sqr_4.y   };
+        vec2 new_sqr_4 = { X2.x - delta_4.y  ,  X2.y - delta_4.x };
+
+        (*target_block).squares[0] = new_sqr_1;
+        (*target_block).squares[1] = new_sqr_2;
+        (*target_block).squares[2] = new_sqr_3;
+        (*target_block).squares[3] = new_sqr_4;
+        (*target_block).rotation_state = 0;
+
+        block c_b = *target_block;
     }
     else if (current_rotation_state == 1)
     {
@@ -466,6 +491,7 @@ void gameLoop(void)
                 new_block.squares[2].x = 1; new_block.squares[2].y = 0;
                 new_block.squares[3].x = 2; new_block.squares[3].y = 0;
                 new_block.is_static = false;
+                new_block.rotation_state = 0;
                 last_block_pointer = add_block(new_block);
             }
             else
@@ -480,6 +506,14 @@ void gameLoop(void)
         
         draw();
 
+        block c_b = *last_block_pointer;
+
+        printf("%d , %d  |  %d , %d  |  %d , %d  |  %d , %d  \n", 
+        c_b.squares[0].x , c_b.squares[0].y,
+        c_b.squares[1].x , c_b.squares[1].y,
+        c_b.squares[2].x , c_b.squares[2].y,
+        c_b.squares[3].x , c_b.squares[3].y);
+        
         sleepSeconds(SECONDWAIT);
         sleepMilliseconds(MSWAIT);
         
