@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #define ROWS 30
-#define COLOUMNS 20
+#define COLOUMNS 12
 #define MAXBLOCKS ((ROWS + 2) * (COLOUMNS + 2))
 
 #define SECONDWAIT 0
