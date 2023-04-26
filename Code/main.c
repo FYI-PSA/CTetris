@@ -123,7 +123,13 @@ char getch_noblock(void)
 /*--------------------------------------*/
 #endif
 
-
+void swap(int* a, int* b)
+{
+    int c = (*a);
+    (*a) = *b;
+    (*b) = c;
+    return;
+}
 
 
 
@@ -156,7 +162,7 @@ typedef struct moveset
 block all_blocks[MAXBLOCKS] = {};
 long blocks_count = 0;
 
-block* add_block(block new_block)
+block* addBlock(block new_block)
 {
     new_block.block_index = blocks_count;
     all_blocks[blocks_count] = new_block;
@@ -214,7 +220,7 @@ const vec2 move_right = {1, 0};
 const vec2 move_left = {-1, 0};
 const vec2 move_down = {0, 1};
 
-void apply_force(vec2 force, block* last_block)
+void applyForce(vec2 force, block* last_block)
 {
     // for (int block_index = 0; block_index < blocks_count; block_index += 1)
     // {
@@ -242,55 +248,58 @@ void apply_force(vec2 force, block* last_block)
     // }
 }
 
-void RotateBlock(block* target_block)
+void rotateBlock(block* target_block)
 {
     block current_block = *target_block;
+    
     int current_rotation_state = current_block.rotation_state;
-    vec2 X1 = current_block.squares[1];
+    vec2 relative;
+    vec2 origin = current_block.squares[1];
+    vec2 delta_squares[4] = 
+        {
+            { origin.x - current_block.squares[0].x  ,  current_block.squares[0].y - origin.y },
+            { origin.x - current_block.squares[1].x  ,  current_block.squares[1].y - origin.y },
+            { origin.x - current_block.squares[2].x  ,  current_block.squares[2].y - origin.y },
+            { origin.x - current_block.squares[3].x  ,  current_block.squares[3].y - origin.y }
+        };
+
     if (current_rotation_state == 0)
     {
-        vec2 X2 = {X1.x + 1, X1.y};
-        
-        vec2 sqr_1 = current_block.squares[0];
-        vec2 delta_1 = {   X1.x - sqr_1.x    ,  X2.y - sqr_1.y   };
-        vec2 new_sqr_1 = { X2.x - delta_1.y  ,  X2.y - delta_1.x };
-        
-        vec2 sqr_2 = current_block.squares[1];
-        vec2 delta_2 = {   X1.x - sqr_2.x    ,  X2.y - sqr_2.y   };
-        vec2 new_sqr_2 = { X2.x - delta_2.y  ,  X2.y - delta_2.x };
-        
-        vec2 sqr_3 = current_block.squares[2];
-        vec2 delta_3 = {   X1.x - sqr_3.x    ,  X2.y - sqr_3.y   };
-        vec2 new_sqr_3 = { X2.x - delta_3.y  ,  X2.y - delta_3.x };
-
-        vec2 sqr_4 = current_block.squares[3];
-        vec2 delta_4 = {   X1.x - sqr_4.x    ,  X2.y - sqr_4.y   };
-        vec2 new_sqr_4 = { X2.x - delta_4.y  ,  X2.y - delta_4.x };
-
-        (*target_block).squares[0] = new_sqr_1;
-        (*target_block).squares[1] = new_sqr_2;
-        (*target_block).squares[2] = new_sqr_3;
-        (*target_block).squares[3] = new_sqr_4;
-        (*target_block).rotation_state = 0;
-
-        block c_b = *target_block;
+        vec2 relative = {origin.x + 1, origin.y};
     }
     else if (current_rotation_state == 1)
     {
-
+        vec2 relative = {origin.x, origin.y + 1};
     }
     else if (current_rotation_state == 2)
     {
-
+        vec2 relative = {origin.x - 1, origin.y};
     }
     else if (current_rotation_state == 3)
     {
-
+        vec2 relative = {origin.x, origin.y - 1};
     }
+    else 
+    {
+        vec2 relative = {origin.x, origin.y};
+    }
+
+    vec2 new_sqr_1 = { relative.x - delta_squares[0].y  ,  relative.y - delta_squares[0].x };
+    vec2 new_sqr_2 = { relative.x - delta_squares[1].y  ,  relative.y - delta_squares[1].x };
+    vec2 new_sqr_3 = { relative.x - delta_squares[2].y  ,  relative.y - delta_squares[2].x };
+    vec2 new_sqr_4 = { relative.x - delta_squares[3].y  ,  relative.y - delta_squares[3].x };
+
+    (*target_block).squares[0] = new_sqr_1;
+    (*target_block).squares[1] = new_sqr_2;
+    (*target_block).squares[2] = new_sqr_3;
+    (*target_block).squares[3] = new_sqr_4;
+    current_rotation_state += 1;
+    current_rotation_state = current_rotation_state % 4;
+    (*target_block).rotation_state = current_rotation_state;
     return;
 }
 
-void MoveBlocks(moveset moves, block* last_block_pointer)
+void moveBlocks(moveset moves, block* last_block_pointer)
 {
     vec2 movement = {0, 0};
     if (moves.right)
@@ -306,11 +315,11 @@ void MoveBlocks(moveset moves, block* last_block_pointer)
         movement = move_down;
     }
 
-    apply_force(movement, last_block_pointer);
+    applyForce(movement, last_block_pointer);
 
     if (moves.rotate)
     {
-        RotateBlock(last_block_pointer);
+        rotateBlock(last_block_pointer);
     }
     if (moves.smash)
     {
@@ -319,7 +328,7 @@ void MoveBlocks(moveset moves, block* last_block_pointer)
     return;
 }
 
-moveset ProcessKeys(char keyboardpress)
+moveset processKeys(char keyboardpress)
 {
     char nextKey = getch_noblock();
     if (keyboardpress == 27)
@@ -461,9 +470,9 @@ void gameLoop(void)
     floor_block_3.is_static = true;
 
     block* last_block_pointer;
-    last_block_pointer = add_block(floor_block_1);
-    last_block_pointer = add_block(floor_block_2);
-    last_block_pointer = add_block(floor_block_3);
+    last_block_pointer = addBlock(floor_block_1);
+    last_block_pointer = addBlock(floor_block_2);
+    last_block_pointer = addBlock(floor_block_3);
 
     int game_ticks = 30;
     int tick_counter = game_ticks;
@@ -478,13 +487,20 @@ void gameLoop(void)
     */
     do
     {
+        block last_block_copy = (*last_block_pointer);
+        
+        char keypress = EOF;
+        keypress = getch_noblock();
+        moveset to_move = processKeys(keypress);
+        moveBlocks(to_move, last_block_pointer);
+        
         tick_counter -= 1;
         if (tick_counter <= 0)
         {
-            apply_force(gravity_force, last_block_pointer);
+            applyForce(gravity_force, last_block_pointer);
             tick_counter = game_ticks;
         }
-        block last_block_copy = (*last_block_pointer);
+        
         if (last_block_copy.is_static == true)
         {
             if (blocks_count < (MAXBLOCKS-5))
@@ -496,20 +512,17 @@ void gameLoop(void)
                 new_block.squares[3].x = 2; new_block.squares[3].y = 0;
                 new_block.is_static = false;
                 new_block.rotation_state = 0;
-                last_block_pointer = add_block(new_block);
+                last_block_pointer = addBlock(new_block);
             }
             else
             {
                 printf("NO MORE BLOCKS, MAX REACHED\n");
             }
         }
-        char keypress = EOF;
-        keypress = getch_noblock();
-        moveset to_move = ProcessKeys(keypress);
-        MoveBlocks(to_move, last_block_pointer);
         
         draw();
 
+        /*
         block c_b = *last_block_pointer;
 
         printf("%d , %d  |  %d , %d  |  %d , %d  |  %d , %d  \n", 
@@ -517,7 +530,8 @@ void gameLoop(void)
         c_b.squares[1].x , c_b.squares[1].y,
         c_b.squares[2].x , c_b.squares[2].y,
         c_b.squares[3].x , c_b.squares[3].y);
-        
+        */
+
         sleepSeconds(SECONDWAIT);
         sleepMilliseconds(MSWAIT);
         
