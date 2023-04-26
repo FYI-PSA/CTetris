@@ -222,30 +222,24 @@ const vec2 move_down = {0, 1};
 
 void applyForce(vec2 force, block* last_block)
 {
-    // for (int block_index = 0; block_index < blocks_count; block_index += 1)
-    // {
-        block current_block = *last_block;
-        if (current_block.is_static == true)
+    block current_block = *last_block;
+    if (current_block.is_static == true)
+    {
+        return;
+    }
+    bool will_collide = checkCollision(current_block, current_block.block_index, gravity_force);
+    if (will_collide == true)
+    {
+        all_blocks[current_block.block_index].is_static = true;
+    }
+    else
+    {
+        for(int square_i = 0; square_i < 4; square_i += 1)
         {
-            return;
+            all_blocks[current_block.block_index].squares[square_i].x += force.x;
+            all_blocks[current_block.block_index].squares[square_i].y += force.y;
         }
-        bool will_collide = checkCollision(current_block, current_block.block_index, gravity_force);
-        if (will_collide == true)
-        {
-            // if (force.y > 0)
-            // {
-                all_blocks[current_block.block_index].is_static = true;
-            // }
-        }
-        else
-        {
-            for(int square_i = 0; square_i < 4; square_i += 1)
-            {
-                all_blocks[current_block.block_index].squares[square_i].x += force.x;
-                all_blocks[current_block.block_index].squares[square_i].y += force.y;
-            }
-        }
-    // }
+    }
 }
 
 void rotateBlock(block* target_block)
@@ -479,9 +473,7 @@ void gameLoop(void)
     /*
     TODO :
      reset function and R key
-     ticks per second counter to automatically set sleep timers
      different types of blocks
-     block rotation
      smashing down
      fix sideways collission 
     */
@@ -522,7 +514,7 @@ void gameLoop(void)
         
         draw();
 
-        /*
+        // /*
         block c_b = *last_block_pointer;
 
         printf("%d , %d  |  %d , %d  |  %d , %d  |  %d , %d  \n", 
@@ -530,7 +522,7 @@ void gameLoop(void)
         c_b.squares[1].x , c_b.squares[1].y,
         c_b.squares[2].x , c_b.squares[2].y,
         c_b.squares[3].x , c_b.squares[3].y);
-        */
+        // */
 
         sleepSeconds(SECONDWAIT);
         sleepMilliseconds(MSWAIT);
