@@ -184,17 +184,22 @@ bool checkCollision(block check_block, int check_block_index, vec2 collission_fo
         {
             continue;
         }
-        
         int force_x = collission_force.x;
         int force_y = collission_force.y;
-
         for (int chk_blk_sqr_indx = 0; chk_blk_sqr_indx < 4; chk_blk_sqr_indx++)
         {
+            if (will_collide == true)
+            {
+                break;
+            }
             int main_y = check_block.squares[chk_blk_sqr_indx].y;
             int main_x = check_block.squares[chk_blk_sqr_indx].x;
-
             for (int scnd_blk_sqr_indx = 0; scnd_blk_sqr_indx < 4; scnd_blk_sqr_indx++)
             {
+                if (will_collide == true)
+                {
+                    break;
+                }
                 int secondary_y = second_block.squares[scnd_blk_sqr_indx].y;
                 int secondary_x = second_block.squares[scnd_blk_sqr_indx].x;
 
@@ -207,18 +212,13 @@ bool checkCollision(block check_block, int check_block_index, vec2 collission_fo
                         will_collide = true;
                     }
                 }
-
             }
         }
-
     }
     return will_collide;
 }
 
 const vec2 gravity_force = {0, 1};
-const vec2 move_right = {1, 0};
-const vec2 move_left = {-1, 0};
-const vec2 move_down = {0, 1};
 
 void applyForce(vec2 force, block* last_block)
 {
@@ -292,6 +292,10 @@ void rotateBlock(block* target_block)
     (*target_block).rotation_state = current_rotation_state;
     return;
 }
+
+const vec2 move_right = {1, 0};
+const vec2 move_left = {-1, 0};
+const vec2 move_down = {0, 1};
 
 void moveBlocks(moveset moves, block* last_block_pointer)
 {
@@ -468,7 +472,7 @@ void gameLoop(void)
     last_block_pointer = addBlock(floor_block_2);
     last_block_pointer = addBlock(floor_block_3);
 
-    int game_ticks = 30;
+    int game_ticks = 33;
     int tick_counter = game_ticks;
     /*
     TODO :
@@ -514,7 +518,7 @@ void gameLoop(void)
         
         draw();
 
-        // /*
+        /*
         block c_b = *last_block_pointer;
 
         printf("%d , %d  |  %d , %d  |  %d , %d  |  %d , %d  \n", 
